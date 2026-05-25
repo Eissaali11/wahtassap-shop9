@@ -7,6 +7,10 @@
 
 set -e
 
+# Prevent interactive prompts during package installation
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a # auto restart services if prompted by needrestart
+
 echo "=========================================="
 echo " OpenWA - Hostinger VPS Setup"
 echo "=========================================="
@@ -44,14 +48,11 @@ apt-get install -y postgresql postgresql-contrib
 systemctl enable postgresql
 systemctl start postgresql
 
-# إنشاء قاعدة البيانات والمستخدم
+# إنشاء قاعدة البيانات والمستخدم (تجنب التعارض)
 DB_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
-sudo -u postgres psql <<EOF
-CREATE USER openwa WITH PASSWORD '${DB_PASSWORD}';
-CREATE DATABASE openwa OWNER openwa;
-GRANT ALL PRIVILEGES ON DATABASE openwa TO openwa;
-\q
-EOF
+sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'openwa') THEN CREATE ROLE openwa WITH LOGIN PASSWORD '${DB_PASSWORD}'; ELSE ALTER ROLE openwa WITH PASSWORD '${DB_PASSWORD}'; END IF; END \$\$;"
+sudo -u postgres psql -c "SELECT 1 FROM pg_database WHERE datname = 'openwa'" | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE openwa OWNER openwa;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE openwa TO openwa;"
 
 echo ""
 echo ">>> PostgreSQL Password (SAVE THIS): ${DB_PASSWORD}"
@@ -78,7 +79,7 @@ apt-get install -y \
   chromium-browser \
   libnss3 libatk-bridge2.0-0 libxcomposite1 \
   libxdamage1 libxfixes3 libxrandr2 libgbm1 \
-  libxkbcommon0 libasound2 libxshmfence1
+  libxkbcommon0 libasound2t64 libxshmfence1
 
 # ====================================================
 # 7. إعداد Nginx كـ Reverse Proxy

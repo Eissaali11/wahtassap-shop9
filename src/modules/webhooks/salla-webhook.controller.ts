@@ -47,10 +47,10 @@ export class SallaWebhookController {
       this.logger.log('Received abandoned cart event from Salla');
 
       const { cart, customer } = payload.data;
-      const sessionId = process.env.DEFAULT_SESSION_ID;
+      const sessionId = await this.getSessionId();
 
       if (!sessionId) {
-        this.logger.warn('No default session ID configured for Salla webhook');
+        this.logger.warn('No active session found for Salla webhook');
         return { statusCode: 400, message: 'No active session configured' };
       }
 
@@ -147,9 +147,10 @@ export class SallaWebhookController {
       this.logger.log('Received order created event from Salla');
 
       const { order, customer } = payload.data;
-      const sessionId = process.env.DEFAULT_SESSION_ID;
+      const sessionId = await this.getSessionId();
 
       if (!sessionId) {
+        this.logger.warn('No active session found for Salla webhook');
         return { statusCode: 400, message: 'No active session configured' };
       }
 
@@ -210,16 +211,19 @@ export class SallaWebhookController {
    */
   @Post('salla/order-status-changed')
   @ApiOperation({ summary: 'Handle order status change webhook' })
-  handleOrderStatusChanged(@Headers('x-salla-signature') signature: string, @Body() payload: any) {
+  async handleOrderStatusChanged(@Headers('x-salla-signature') signature: string, @Body() payload: any) {
     if (!this.verifyWebhookSignature(JSON.stringify(payload), signature)) {
       throw new BadRequestException('Invalid webhook signature');
     }
 
     try {
       const { order, customer, status } = payload.data;
-      const sessionId = process.env.DEFAULT_SESSION_ID;
+      const sessionId = await this.getSessionId();
 
-      if (!sessionId) return { statusCode: 400, message: 'No active session configured' };
+      if (!sessionId) {
+        this.logger.warn('No active session found for Salla webhook');
+        return { statusCode: 400, message: 'No active session configured' };
+      }
 
       const phoneNumber = this.normalizePhoneNumber(customer.mobile);
 
@@ -257,9 +261,12 @@ export class SallaWebhookController {
 
     try {
       const { customer } = payload.data;
-      const sessionId = process.env.DEFAULT_SESSION_ID;
+      const sessionId = await this.getSessionId();
 
-      if (!sessionId) return { statusCode: 400, message: 'No active session configured' };
+      if (!sessionId) {
+        this.logger.warn('No active session found for Salla webhook');
+        return { statusCode: 400, message: 'No active session configured' };
+      }
 
       let contactList = await this.contactListRepo.findOne({
         where: { session_id: sessionId, source: 'salla_webhook', name: 'Salla - All Customers' },
@@ -348,5 +355,29 @@ export class SallaWebhookController {
     } catch (error) {
       this.logger.error('Failed to send abandoned cart reminder:', error);
     }
+  }
+
+  private async getSessionId(): Promise<string | null> {
+    const envSessionId = process.env.DEFAULT_SESSION_ID;
+    if (envSessionId && envSessionId !== 'default-session') {
+      try {
+        const session = await this.sessionService.findOne(envSessionId);
+        if (session) return envSessionId;
+      } catch (e) {
+        // Not found
+      }
+    }
+    
+    const sessions = await this.sessionService.findAll();
+    const readySession = sessions.find(s => s.status === 'ready');
+    if (readySession) {
+      return readySession.id;
+    }
+    
+    if (sessions.length > 0) {
+      return sessions[0].id;
+    }
+    
+    return null;
   }
 }

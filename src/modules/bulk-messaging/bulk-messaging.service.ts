@@ -829,7 +829,24 @@ export class BulkMessagingService {
     if (!engine) {
       throw new BadRequestException(`No active engine for session ${sessionId}`);
     }
-    await engine.sendTextMessage(phone, message);
+
+    let chatId = phone.trim();
+    if (!chatId.includes('@')) {
+      const cleaned = chatId.replace(/\D/g, '');
+      if (cleaned.startsWith('9665')) {
+        chatId = '966' + cleaned.substring(4) + '@c.us';
+      } else if (cleaned.startsWith('966')) {
+        chatId = cleaned + '@c.us';
+      } else if (cleaned.startsWith('05')) {
+        chatId = '966' + cleaned.substring(1) + '@c.us';
+      } else if (cleaned.startsWith('5')) {
+        chatId = '966' + cleaned + '@c.us';
+      } else {
+        chatId = cleaned + '@c.us';
+      }
+    }
+
+    await engine.sendTextMessage(chatId, message);
   }
 
   private async createJob(jobType: string, data: any) {

@@ -131,13 +131,13 @@ export class BulkMessage {
   @Column('varchar', { length: 50, default: 'draft' })
   status: 'draft' | 'scheduled' | 'processing' | 'completed' | 'failed';
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   scheduled_at: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   started_at: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   completed_at: Date;
 
   @OneToMany(() => MessageLog, log => log.bulk_message, { cascade: true })
@@ -184,7 +184,7 @@ export class MessageLog {
   @Column('text', { nullable: true })
   error_message: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   sent_at: Date;
 
   @CreateDateColumn()
@@ -237,7 +237,7 @@ export class RecurringMessage {
   @Column({ type: 'varchar', length: 10, nullable: true })
   end_date: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   last_sent_at: Date;
 
   @CreateDateColumn()
@@ -288,7 +288,7 @@ export class AbandonedCart {
   @Column('boolean', { default: false })
   reminder_sent: boolean;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   reminder_sent_at: Date;
 
   @CreateDateColumn()
@@ -324,13 +324,13 @@ export class Job {
   @Column('text', { nullable: true })
   error_message: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   scheduled_at: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   started_at: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   completed_at: Date;
 
   @CreateDateColumn()
