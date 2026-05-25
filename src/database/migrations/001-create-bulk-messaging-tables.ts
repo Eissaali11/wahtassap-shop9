@@ -58,7 +58,7 @@ export class CreateBulkMessagingTables001234567890000 implements MigrationInterf
         foreignKeys: [
           new TableForeignKey({
             columnNames: ['session_id'],
-            referencedTableName: 'session',
+            referencedTableName: 'sessions',
             referencedColumnNames: ['id'],
             onDelete: 'CASCADE',
           }),
@@ -228,7 +228,7 @@ export class CreateBulkMessagingTables001234567890000 implements MigrationInterf
         foreignKeys: [
           new TableForeignKey({
             columnNames: ['session_id'],
-            referencedTableName: 'session',
+            referencedTableName: 'sessions',
             referencedColumnNames: ['id'],
             onDelete: 'CASCADE',
           }),
@@ -398,7 +398,7 @@ export class CreateBulkMessagingTables001234567890000 implements MigrationInterf
         foreignKeys: [
           new TableForeignKey({
             columnNames: ['session_id'],
-            referencedTableName: 'session',
+            referencedTableName: 'sessions',
             referencedColumnNames: ['id'],
             onDelete: 'CASCADE',
           }),
@@ -483,7 +483,7 @@ export class CreateBulkMessagingTables001234567890000 implements MigrationInterf
         foreignKeys: [
           new TableForeignKey({
             columnNames: ['session_id'],
-            referencedTableName: 'session',
+            referencedTableName: 'sessions',
             referencedColumnNames: ['id'],
             onDelete: 'CASCADE',
           }),
