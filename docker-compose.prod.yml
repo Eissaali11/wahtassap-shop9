@@ -1,0 +1,170 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: openwa-postgres
+    environment:
+      POSTGRES_USER: openwa_user
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-your_secure_password_here}
+      POSTGRES_DB: openwa_prod
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - openwa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openwa_user -d openwa_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: openwa-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-your_redis_password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - openwa-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: openwa-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - openwa-network
+    restart: unless-stopped
+
+  # OpenWA Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openwa-app
+    environment:
+      NODE_ENV: production
+      PORT: 2785
+      DASHBOARD_PORT: 2886
+      
+      # Database
+      DATABASE_TYPE: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: openwa_prod
+      DATABASE_USER: openwa_user
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-your_secure_password_here}
+      DATABASE_SSL: 'false'
+      DATABASE_POOL_SIZE: 20
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-your_redis_password}
+      REDIS_DB: 0
+      CACHE_TYPE: redis
+      ENABLE_CACHE: 'true'
+      
+      # API Keys & Security
+      API_KEY_DEFAULT: ${API_KEY_DEFAULT:-dev-admin-key}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-key}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key}
+      
+      # WhatsApp Engine
+      ENGINE_TYPE: whatsapp-web.js
+      SESSION_DATA_PATH: /app/data/sessions
+      PUPPETEER_HEADLESS: 'true'
+      PUPPETEER_ARGS: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage
+      
+      # Storage
+      STORAGE_TYPE: local
+      STORAGE_PATH: /app/data/media
+      
+      # Salla Integration
+      SALLA_API_KEY: ${SALLA_API_KEY:-}
+      SALLA_API_SECRET: ${SALLA_API_SECRET:-}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      WEBHOOK_ENABLED: 'true'
+      
+      # URLs
+      APP_URL: https://${DOMAIN:-localhost}
+      API_URL: https://${DOMAIN:-localhost}/api
+      SALLA_WEBHOOK_URL: https://${DOMAIN:-localhost}/api/webhooks/salla
+      
+      # Features
+      FEATURE_RECURRING_MESSAGES: 'true'
+      FEATURE_ABANDONED_CART: 'true'
+      FEATURE_BULK_IMPORT: 'true'
+      FEATURE_FILE_UPLOADS: 'true'
+      
+      # Message Limits (WhatsApp Safety)
+      DAILY_MESSAGE_LIMIT: '1000'
+      HOURLY_MESSAGE_LIMIT: '100'
+      MESSAGE_DELAY_MS: '100'
+      
+      # Bulk Messaging
+      BULK_MESSAGING_ENABLED: 'true'
+      BULK_MESSAGE_RATE_LIMIT: '5000'
+      MAX_CONTACTS_PER_BATCH: '50'
+      
+      # Logging
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    ports:
+      - "2785:2785"
+      - "2886:2886"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - openwa-network
+    restart: unless-stopped
+
+  # Adminer - Database Management UI (Optional)
+  adminer:
+    image: adminer:latest
+    container_name: openwa-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - openwa-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  openwa-network:
+    driver: bridge

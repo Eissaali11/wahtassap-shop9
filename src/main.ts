@@ -159,7 +159,11 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT || 2785;
+  // Redirect root / → /api/docs for convenience
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.get('/', (_req: any, res: any) => res.redirect('/api/docs'));
+
+  const port = process.env.PORT || process.env.API_PORT || 2785;
   await app.listen(port);
 
   console.log(`🚀 OpenWA is running on: http://localhost:${port}`);

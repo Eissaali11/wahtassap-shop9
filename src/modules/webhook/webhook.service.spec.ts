@@ -398,7 +398,7 @@ describe('WebhookService', () => {
         }),
         expect.objectContaining({
           attempts: 3,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           backoff: expect.objectContaining({ type: 'exponential' }),
         }),
       );

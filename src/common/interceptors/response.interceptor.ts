@@ -13,7 +13,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>
     return next.handle().pipe(
       map(data => ({
         success: true,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
         data,
         meta: {
           timestamp: new Date().toISOString(),
