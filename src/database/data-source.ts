@@ -12,7 +12,7 @@ const sqliteDataSource = new DataSource({
   database: process.env.DATABASE_NAME || './data/openwa.sqlite',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: false,
+  synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
   logging: process.env.DATABASE_LOGGING === 'true',
 });
 
@@ -26,7 +26,7 @@ const postgresDataSource = new DataSource({
   database: process.env.DATABASE_NAME || 'openwa',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: false, // Never auto-sync in production
+  synchronize: process.env.DATABASE_SYNCHRONIZE === 'true', // Never auto-sync in production unless requested
   logging: process.env.DATABASE_LOGGING === 'true',
   ssl:
     process.env.DATABASE_SSL === 'true'
