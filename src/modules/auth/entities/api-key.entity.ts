@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, ValueTransformer } from 'typeorm';
+
+// Transformer to store Date as integer epoch in SQLite (avoids 'Object' type error for Date|null)
+const dateEpochTransformer: ValueTransformer = {
+  to: (value: Date | null | undefined): number | null => (value ? value.getTime() : null),
+  from: (value: number | null | undefined): Date | null => (value ? new Date(value) : null),
+};
 
 export enum ApiKeyRole {
   ADMIN = 'admin',
@@ -37,10 +43,10 @@ export class ApiKey {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'integer', nullable: true, transformer: dateEpochTransformer })
   expiresAt: Date | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'integer', nullable: true, transformer: dateEpochTransformer })
   lastUsedAt: Date | null;
 
   @Column({ type: 'int', default: 0 })
