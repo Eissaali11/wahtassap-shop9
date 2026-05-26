@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Session } from './entities/session.entity';
 import { SessionService } from './session.service';
 import { SessionController } from './session.controller';
+import { MetaWebhookController } from './meta-webhook.controller';
 import { WebhookModule } from '../webhook/webhook.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Session], 'data'), forwardRef(() => WebhookModule)],
-  controllers: [SessionController],
+  controllers: [SessionController, MetaWebhookController],
   providers: [SessionService],
   exports: [SessionService],
 })

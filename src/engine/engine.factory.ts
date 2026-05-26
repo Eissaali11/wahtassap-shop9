@@ -4,6 +4,7 @@ import { IWhatsAppEngine } from './interfaces/whatsapp-engine.interface';
 import { WhatsAppWebJsAdapter } from './adapters/whatsapp-web-js.adapter';
 import { PluginLoaderService, PluginType, IEnginePlugin, PluginManifest } from '../core/plugins';
 import { WhatsAppWebJsPlugin } from '../plugins/engines/whatsapp-web-js';
+import { MetaCloudApiPlugin } from '../plugins/engines/meta-cloud-api';
 import { createLogger } from '../common/services/logger.service';
 
 export interface EngineCreateOptions {
@@ -43,6 +44,19 @@ export class EngineFactory implements OnModuleInit {
 
     const wwjsPlugin = new WhatsAppWebJsPlugin();
     this.pluginLoader.registerBuiltInPlugin(wwjsManifest, wwjsPlugin);
+
+    // Register Meta Cloud API as built-in plugin
+    const metaManifest: PluginManifest = {
+      id: 'meta-cloud-api',
+      name: 'Meta WhatsApp Cloud API',
+      version: '1.0.0',
+      type: PluginType.ENGINE,
+      description: 'Official Meta WhatsApp Cloud API engine adapter',
+      main: 'index.ts',
+      provides: ['whatsapp-engine'],
+    };
+    const metaPlugin = new MetaCloudApiPlugin();
+    this.pluginLoader.registerBuiltInPlugin(metaManifest, metaPlugin);
 
     // Auto-enable the configured engine
     try {
