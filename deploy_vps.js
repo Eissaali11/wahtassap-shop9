@@ -169,7 +169,7 @@ server {
     }
 
     location / {
-        root /app/dashboard/dist;
+        root /app/openwa/dashboard/dist;
         try_files \$uri \$uri/ /index.html;
         expires 1h;
         add_header Cache-Control "public, no-transform";
