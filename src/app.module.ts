@@ -90,7 +90,7 @@ if (process.env.QUEUE_ENABLED === 'true') {
             database: 'openwa',
             // Never auto-sync Postgres in production; rely on migrations.
             synchronize: configService.get<boolean>('dataDatabase.synchronize', false),
-            migrationsRun: true,
+            migrationsRun: !configService.get<boolean>('dataDatabase.synchronize', false),
             retryAttempts: 10,
             retryDelay: 3000,
             extra: {
