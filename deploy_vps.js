@@ -204,7 +204,7 @@ DATABASE_PORT=5432
 DATABASE_USERNAME=openwa
 DATABASE_PASSWORD=${dbPassword}
 DATABASE_NAME=openwa
-DATABASE_SYNCHRONIZE=false
+DATABASE_SYNCHRONIZE=true
 DATABASE_LOGGING=false
 
 ENGINE_TYPE=whatsapp-web.js
@@ -240,8 +240,8 @@ WEBHOOK_SECRET=default-secret
   await sshExec(conn, 'cd /app/openwa/dashboard && npm ci && npm run build');
 
   // I. Run database migrations
-  console.log('--- Phase 9: Executing database migrations...');
-  await sshExec(conn, 'cd /app/openwa && NODE_ENV=production node -r dotenv/config node_modules/.bin/typeorm migration:run -d dist/database/data-source.js');
+  console.log('--- Phase 9: Database is synchronized automatically on application bootstrap, skipping migrations...');
+  await sshExec(conn, 'echo "Skipping migrations, database synchronized automatically."');
 
   // J. Launch Application using PM2 under openwa user
   console.log('--- Phase 10: Starting process with PM2...');
