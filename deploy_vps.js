@@ -187,7 +187,9 @@ server {
   await sshExec(conn, 'nginx -t && systemctl reload nginx');
 
   // F. Clone project Git Repository directly on the VPS
-  console.log('--- Phase 6: Cloning project repository from GitHub...');
+  console.log('--- Phase 6: Stopping existing processes to release file locks and cloning project repository from GitHub...');
+  await sshExec(conn, 'sudo -u openwa pm2 delete openwa || true');
+  await sshExec(conn, 'sudo -u openwa pm2 kill || true');
   await sshExec(conn, 'rm -rf /app/openwa');
   await sshExec(conn, `git clone ${config.repoUrl} /app/openwa`);
 
