@@ -183,7 +183,9 @@ server {
 `;
 
   await sftpWriteString(sftp, remoteNginxConf, '/tmp/openwa-nginx-ssl.conf');
-  await sshExec(conn, 'cp /tmp/openwa-nginx-ssl.conf /etc/nginx/sites-available/openwa');
+  await sshExec(conn, 'cp /tmp/openwa-nginx-ssl.conf /etc/nginx/sites-available/openwa.conf');
+  await sshExec(conn, 'ln -sf /etc/nginx/sites-available/openwa.conf /etc/nginx/sites-enabled/openwa.conf');
+  await sshExec(conn, 'rm -f /etc/nginx/sites-enabled/openwa /etc/nginx/sites-available/openwa');
   await sshExec(conn, 'nginx -t && systemctl reload nginx');
 
   // F. Clone project Git Repository directly on the VPS

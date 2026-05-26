@@ -88,8 +88,8 @@ echo "[7/8] Installing and configuring Nginx..."
 apt-get install -y nginx certbot python3-certbot-nginx
 
 # نسخ إعدادات Nginx
-cp /tmp/openwa-nginx.conf /etc/nginx/sites-available/openwa
-ln -sf /etc/nginx/sites-available/openwa /etc/nginx/sites-enabled/openwa
+cp /tmp/openwa-nginx.conf /etc/nginx/sites-available/openwa.conf
+ln -sf /etc/nginx/sites-available/openwa.conf /etc/nginx/sites-enabled/openwa.conf
 rm -f /etc/nginx/sites-enabled/default
 
 nginx -t && systemctl reload nginx
