@@ -255,8 +255,8 @@ export function BulkMessaging() {
     setSelectedList(list);
     setLoadingContacts(true);
     try {
-      const data = await apiFetch<{ contacts: Contact[] }>(`/sessions/${sessionId}/bulk-messaging/contact-lists/${list.id}`);
-      setListContacts(data.contacts || []);
+      const data = await apiFetch<{ data: { contacts: Contact[] } }>(`/sessions/${sessionId}/bulk-messaging/contact-lists/${list.id}`);
+      setListContacts(data.data?.contacts || []);
     } catch (e) {
       showToast('error', (e as Error).message);
     } finally {
