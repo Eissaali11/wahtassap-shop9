@@ -282,7 +282,7 @@ export class BulkMessagingService {
       // قراءة ملف Excel
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(worksheet);
+      const rows = XLSX.utils.sheet_to_json(worksheet, { raw: true });
 
       const contacts = [];
       let invalidCount = 0;
