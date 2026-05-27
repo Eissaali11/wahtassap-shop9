@@ -1,6 +1,6 @@
-import { Controller, Post, Get, Body, Headers, Query, Logger, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, Query, Logger, BadRequestException, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
-import { Request } from 'express';
+import * as express from 'express';
 import * as crypto from 'crypto';
 import { Public } from '../auth/decorators/auth.decorators';
 import { SessionService } from './session.service';
@@ -34,12 +34,15 @@ export class MetaWebhookController {
     @Query('hub.mode') mode: string,
     @Query('hub.verify_token') token: string,
     @Query('hub.challenge') challenge: string,
-  ): string {
+    @Res() res: express.Response,
+  ): void {
     this.logger.log(`Webhook verification: mode=${mode}, token=${token}`);
 
     if (mode === 'subscribe' && token === this.verifyToken) {
       this.logger.log('✅ Webhook verified successfully by Meta');
-      return challenge;
+      res.setHeader('Content-Type', 'text/plain');
+      res.status(200).send(challenge);
+      return;
     }
 
     this.logger.warn('❌ Webhook verification failed — token mismatch');
