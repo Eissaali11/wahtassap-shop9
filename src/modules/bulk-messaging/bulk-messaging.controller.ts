@@ -241,7 +241,7 @@ export class BulkMessagingController {
     @Param('messageId', new ParseUUIDPipe()) messageId: string,
     @Body() body?: { delay_ms?: number },
   ) {
-    return await this.bulkMessagingService.sendBulkMessage(messageId, body?.delay_ms || 100);
+    return await this.bulkMessagingService.sendBulkMessage(messageId, body?.delay_ms || 8000);
   }
 
   /**
@@ -383,5 +383,18 @@ export class BulkMessagingController {
     @Param('cartId', new ParseUUIDPipe()) cartId: string,
   ) {
     return await this.bulkMessagingService.sendAbandonedCartReminder(cartId);
+  }
+
+  /**
+   * توليد نص تسويقي باستخدام ذكاء اصطناعي Gemini AI
+   * @example POST /api/sessions/{sessionId}/bulk-messaging/generate-marketing-text
+   */
+  @Post('generate-marketing-text')
+  @ApiOperation({ summary: 'Generate professional marketing message using Gemini AI' })
+  async generateMarketingText(
+    @Param('sessionId', new ParseUUIDPipe()) sessionId: string,
+    @Body() body: { prompt: string },
+  ) {
+    return await this.bulkMessagingService.generateMarketingText(body.prompt);
   }
 }

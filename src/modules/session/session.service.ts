@@ -231,6 +231,9 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
     this.engines.set(id, engine);
 
+    // Update status to INITIALIZING before connection setup to avoid overwriting a successful READY state
+    await this.updateStatus(id, SessionStatus.INITIALIZING);
+
     await engine.initialize({
       onQRCode: (): void => {
         this.logger.log('QR code generated', {
@@ -280,6 +283,11 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
           pushName,
           connectedAt: new Date(),
           lastActiveAt: new Date(),
+        }).catch(err => {
+          this.logger.error(`Failed to update session ready status in database: ${err.message}`, err.stack, {
+            sessionId: id,
+            action: 'ready_db_update_failed',
+          });
         });
       },
       onMessage: (message): void => {
@@ -344,13 +352,17 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
           [EngineStatus.FAILED]: SessionStatus.FAILED,
         };
         const newStatus = statusMap[engineState];
-        if (newStatus) {
-          void this.updateStatus(id, newStatus);
+        // Skip READY here to let onReady handle it exclusively in a single query, preventing database write race conditions
+        if (newStatus && newStatus !== SessionStatus.READY) {
+          void this.updateStatus(id, newStatus).catch(err => {
+            this.logger.error(`Failed to update status in onStateChanged to ${newStatus}: ${err.message}`, err.stack, {
+              sessionId: id,
+              action: 'state_changed_db_update_failed',
+            });
+          });
         }
       },
     });
-
-    await this.updateStatus(id, SessionStatus.INITIALIZING);
   }
 
   private scheduleReconnect(id: string, session: Session): void {

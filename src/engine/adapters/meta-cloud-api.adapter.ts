@@ -507,7 +507,7 @@ export class MetaCloudApiAdapter implements IWhatsAppEngine {
 
   private normalizePhone(phone: string): string {
     // Remove spaces, dashes, plus signs; ensure starts with country code
-    return phone.replace(/[\s\-\+\(\)]/g, '').replace(/^0/, '966');
+    return phone.split('@')[0].replace(/[\s\-\+\(\)]/g, '').replace(/^0/, '966');
   }
 
   private async uploadMedia(media: MediaInput): Promise<string> {

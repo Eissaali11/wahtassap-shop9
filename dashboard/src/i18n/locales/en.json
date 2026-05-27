@@ -56,6 +56,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "sessions": "Sessions",
+    "bulkMessaging": "Bulk Messaging",
     "webhooks": "Webhooks",
     "apiKeys": "API Keys",
     "messageTester": "Message Tester",

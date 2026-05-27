@@ -147,6 +147,33 @@ export function BulkMessaging() {
   // Expanded detail for bulk message
   const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null);
 
+  // Gemini AI Copywriter state
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generatingAiText, setGeneratingAiText] = useState(false);
+  const [aiResult, setAiResult] = useState('');
+
+  async function generateAiText() {
+    if (!aiPrompt.trim()) return;
+    setGeneratingAiText(true);
+    setAiResult('');
+    try {
+      const data = await apiFetch<{ data: { text: string } }>(
+        `/sessions/${sessionId}/bulk-messaging/generate-marketing-text`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ prompt: aiPrompt }),
+        }
+      );
+      setAiResult(data.data?.text || '');
+      showToast('success', 'تم توليد النص بنجاح!');
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    } finally {
+      setGeneratingAiText(false);
+    }
+  }
+
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 4000);
@@ -287,12 +314,26 @@ export function BulkMessaging() {
       const result = await res.json();
       await openList(selectedList);
       await loadLists(sessionId);
-      showToast('success', `تم استيراد ${result.imported ?? 0} جهة اتصال`);
+      showToast('success', `تم استيراد ${result.data?.imported ?? result.imported ?? 0} جهة اتصال بنجاح!`);
     } catch (e) {
       showToast('error', (e as Error).message);
     } finally {
       setImportingExcel(false);
     }
+  }
+
+  function downloadTemplate() {
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+      + "رقم الجوال,الاسم,البريد الإلكتروني,المدينة\n"
+      + "966501234567,أحمد علي,ahmed@example.com,الرياض\n"
+      + "966551234567,سارة أحمد,sara@example.com,جدة\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "نموذج_استيراد_أرقام_openwa.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   // ── Bulk messages ───────────────────────────────────────────────────────────
@@ -506,7 +547,10 @@ export function BulkMessaging() {
                   <>
                     <div className="panel-header">
                       <h3>{selectedList.name}</h3>
-                      <div className="header-actions">
+                       <div className="header-actions">
+                        <button className="btn-outline btn-sm" onClick={downloadTemplate} title="تحميل نموذج ملف الاستيراد">
+                          <Upload size={14} style={{ transform: 'rotate(180deg)' }} /> تحميل النموذج
+                        </button>
                         <button className="btn-outline btn-sm" onClick={() => setShowAddContact(!showAddContact)}>
                           <Plus size={14} /> إضافة
                         </button>
@@ -603,7 +647,17 @@ export function BulkMessaging() {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>نص الرسالة * (يمكن استخدام {'{{name}}'} للاسم)</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ marginBottom: 0 }}>نص الرسالة * (يمكن استخدام {'{{name}}'} للاسم)</label>
+                      <button
+                        type="button"
+                        className="btn-outline btn-sm"
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 8px', fontSize: '11px', height: 'auto', border: '1px solid #7c3aed', color: '#7c3aed' }}
+                        onClick={() => setShowAiModal(true)}
+                      >
+                        💡 توليد بالذكاء الاصطناعي (Gemini)
+                      </button>
+                    </div>
                     <textarea
                       rows={4}
                       placeholder={'مثال: مرحباً {{name}}، لدينا عروض خاصة لك اليوم!'}
@@ -737,6 +791,99 @@ export function BulkMessaging() {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* Gemini AI Copywriter Modal */}
+      {showAiModal && (
+        <div className="ai-modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+          justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="ai-modal" style={{
+            backgroundColor: '#ffffff', borderRadius: '12px',
+            width: '90%', maxWidth: '600px', padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            direction: 'rtl'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 'bold', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🤖 كاتب الإعلانات الذكي (Gemini AI)
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setShowAiModal(false); setAiPrompt(''); setAiResult(''); }}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '13px' }}>
+                اكتب فكرتك أو العرض التسويقي باختصار:
+              </label>
+              <textarea
+                rows={3}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', resize: 'vertical' }}
+                placeholder="مثال: عرض نهاية العام خصم 20% على العطور لعملائنا في الرياض وشحن مجاني للطلبات فوق 200 ريال"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', marginBottom: '16px' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#7c3aed', border: 'none', borderRadius: '6px', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                disabled={generatingAiText || !aiPrompt.trim()}
+                onClick={generateAiText}
+              >
+                {generatingAiText ? <Loader2 size={14} className="spin" /> : '💡 توليد النص التسويقي'}
+              </button>
+            </div>
+
+            {aiResult && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '13px', color: '#10b981' }}>
+                  ✨ النص التسويقي المقترح:
+                </label>
+                <div style={{
+                  padding: '12px', borderRadius: '8px', backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb', fontSize: '13px', whiteSpace: 'pre-wrap',
+                  maxHeight: '200px', overflowY: 'auto', lineHeight: '1.6'
+                }}>
+                  {aiResult}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#10b981', border: 'none', borderRadius: '6px', color: '#ffffff', cursor: 'pointer' }}
+                    onClick={() => {
+                      setNewMsgTemplate(aiResult);
+                      setShowAiModal(false);
+                      setAiPrompt('');
+                      setAiResult('');
+                    }}
+                  >
+                    📥 استخدام هذا النص
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}
+                    onClick={generateAiText}
+                  >
+                    🔄 إعادة الصياغة
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

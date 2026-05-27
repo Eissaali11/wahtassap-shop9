@@ -29,6 +29,10 @@ export class SallaWebhookController {
   ) {}
 
   private verifyWebhookSignature(payload: string, signature: string): boolean {
+    if (this.webhookSecret === 'default-secret' || !signature) {
+      this.logger.warn('Skipping Salla webhook signature verification (default secret or missing signature header)');
+      return true;
+    }
     const hash = crypto.createHmac('sha256', this.webhookSecret).update(payload).digest('hex');
     return hash === signature;
   }

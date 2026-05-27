@@ -288,26 +288,56 @@ export class BulkMessagingService {
       let invalidCount = 0;
 
       for (const row of rows as Record<string, any>[]) {
-        // الافتراض: A=phone, B=name, C=email, D=city
-        const phone: string | undefined = row.phone ?? row['A'];
-        const name: string | undefined = row.name ?? row['B'];
-        const email: string | undefined = row.email ?? row['C'];
-        const city: string | undefined = row.city ?? row['D'];
+        // البحث الذكي عن مسميات الأعمدة الشائعة
+        const phoneKey = Object.keys(row).find(k =>
+          /^(phone|mobile|number|الهاتف|الجوال|رقم الجوال|رقم الهاتف|A)$/i.test(k.trim())
+        ) || 'phone';
 
-        if (phone && this.validatePhoneNumber(phone)) {
-          const existing = await this.contactRepo.findOne({
-            where: { contact_list_id: listId, phone },
-          });
+        const nameKey = Object.keys(row).find(k =>
+          /^(name|full_name|fullname|الاسم|اسم العميل|الاسم الكامل|B)$/i.test(k.trim())
+        ) || 'name';
 
-          if (!existing) {
-            contacts.push({
-              contact_list_id: listId,
-              phone,
-              name,
-              email,
-              city,
-              custom_data: { imported_from: 'excel', imported_at: new Date() },
+        const emailKey = Object.keys(row).find(k =>
+          /^(email|mail|البريد|البريد الإلكتروني|C)$/i.test(k.trim())
+        ) || 'email';
+
+        const cityKey = Object.keys(row).find(k =>
+          /^(city|region|المدينة|المنطقة|D)$/i.test(k.trim())
+        ) || 'city';
+
+        let rawPhone: any = row[phoneKey];
+        const name: string | undefined = row[nameKey];
+        const email: string | undefined = row[emailKey];
+        const city: string | undefined = row[cityKey];
+
+        if (rawPhone) {
+          // تنظيف رقم الهاتف من الفواصل، المسافات، الأقواس وعلامة +
+          let phone = rawPhone.toString().replace(/\s|-|\(|\)|\+/g, '');
+
+          // تصحيح الأرقام السعودية المحلية (مثال: تحويل 05xxxxxxx إلى 9665xxxxxxx)
+          if (phone.startsWith('05') && phone.length === 10) {
+            phone = '966' + phone.substring(1);
+          } else if (phone.startsWith('5') && phone.length === 9) {
+            phone = '966' + phone;
+          }
+
+          if (this.validatePhoneNumber(phone)) {
+            const existing = await this.contactRepo.findOne({
+              where: { contact_list_id: listId, phone },
             });
+
+            if (!existing) {
+              contacts.push({
+                contact_list_id: listId,
+                phone,
+                name: name ? name.toString().trim() : undefined,
+                email: email ? email.toString().trim() : undefined,
+                city: city ? city.toString().trim() : undefined,
+                custom_data: { imported_from: 'excel', imported_at: new Date() },
+              });
+            }
+          } else {
+            invalidCount++;
           }
         } else {
           invalidCount++;
@@ -586,9 +616,11 @@ export class BulkMessagingService {
         );
       }
 
-      // انتظار التأخير
+      // انتظار التأخير (مع إضافة عشوائية لمحاكاة سلوك الإنسان والوقاية من الحظر)
       if (i < contacts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        const safeDelay = Math.max(2000, delayMs); // الحد الأدنى ثانيتين
+        const randomJitter = Math.random() * 4000; // إضافة ما بين 0 إلى 4 ثوانٍ عشوائية
+        await new Promise(resolve => setTimeout(resolve, safeDelay + randomJitter));
       }
     }
 
@@ -864,6 +896,76 @@ export class BulkMessagingService {
       await fs.mkdir(this.EXCEL_UPLOAD_DIR, { recursive: true });
     } catch (error) {
       this.logger.error('Failed to create upload directory:', error);
+    }
+  }
+
+  /**
+   * توليد نص تسويقي احترافي باستخدام ذكاء اصطناعي Gemini AI
+   */
+  async generateMarketingText(prompt: string) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'your-gemini-api-key') {
+      throw new BadRequestException(
+        'يرجى تهيئة مفتاح الـ API لـ Gemini أولاً في ملف الإعدادات .env تحت اسم GEMINI_API_KEY'
+      );
+    }
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `أنت كاتب إعلانات تسويقي محترف وخبير في كتابة حملات الواتساب والمبيعات التفاعلية.
+مهمتك هي كتابة رسالة تسويقية عربية جذابة ومقنعة للغاية للعميل بناءً على هذا الطلب: "${prompt}".
+
+شروط كتابة الرسالة:
+1. استخدم لغة عربية ودية وقريبة للقلب ومناسبة للهجة الخليجية/السعودية إذا كان العرض محلياً.
+2. نسق الرسالة بذكاء باستخدام الفقرات القصيرة، والـ Emojis المناسبة لتبدو حية وتفاعلية.
+3. استخدم الرموز المناسبة لتنسيق النص في واتساب مثل النجمة (*) لجعل الكلمات المهمة غامقة (Bold).
+4. استخدم متغير التخصيص {{name}} في بداية الرسالة للترحيب بالعميل (مثال: أهلاً بك يا {{name}} 👋).
+5. أضف جملة دعوة لاتخاذ إجراء واضحة ومثيرة للاهتمام (Call to Action).
+6. اجعل الرسالة مقنعة وتجنب الكلمات المكررة أو الطول الممل.
+
+اكتب الرسالة التسويقية مباشرة دون أي مقدمات أو تعليقات خارجية لتكون جاهزة للاستخدام فوراً.`
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1000
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      return {
+        statusCode: 200,
+        data: {
+          text: generatedText.trim()
+        }
+      };
+    } catch (error) {
+      this.logger.error('Gemini text generation failed:', error);
+      throw new BadRequestException(
+        'فشل توليد النص التسويقي: ' + (error instanceof Error ? error.message : String(error))
+      );
     }
   }
 }
